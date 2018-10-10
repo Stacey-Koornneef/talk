@@ -1,8 +1,15 @@
 import express, { Router } from "express";
 
 import { AppOptions } from "talk-server/app";
-import { nocacheMiddleware } from "talk-server/app/middleware/cacheHeaders";
+import {
+  cacheHeadersMiddleware,
+  nocacheMiddleware,
+} from "talk-server/app/middleware/cacheHeaders";
+import { errorHandler } from "talk-server/app/middleware/error";
+import { accessLogger, errorLogger } from "talk-server/app/middleware/logging";
+import { notFoundMiddleware } from "talk-server/app/middleware/notFound";
 import playground from "talk-server/app/middleware/playground";
+import serveStatic from "talk-server/app/middleware/serveStatic";
 import { RouterOptions } from "talk-server/app/router/types";
 import logger from "talk-server/logger";
 
@@ -12,6 +19,9 @@ import { createClientTargetRouter } from "./client";
 export async function createRouter(app: AppOptions, options: RouterOptions) {
   // Create a router.
   const router = express.Router();
+
+  // Logging
+  router.use(accessLogger);
 
   router.use("/api", nocacheMiddleware, await createAPIRouter(app, options));
 
@@ -23,6 +33,14 @@ export async function createRouter(app: AppOptions, options: RouterOptions) {
   // Add the client targets.
   router.get("/embed/stream", createClientTargetRouter({ view: "stream" }));
   router.get("/admin", createClientTargetRouter({ view: "admin" }));
+
+  // Static Files
+  router.use("/assets", cacheHeadersMiddleware("1w"), serveStatic);
+
+  // Error Handling
+  router.use(notFoundMiddleware);
+  router.use(errorLogger);
+  router.use(errorHandler);
 
   return router;
 }

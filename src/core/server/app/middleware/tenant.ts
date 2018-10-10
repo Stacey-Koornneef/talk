@@ -1,5 +1,6 @@
 import { NextFunction, Response } from "express";
 
+import { TenantNotFoundErr } from "talk-server/errors";
 import TenantCache from "talk-server/services/tenant/cache";
 import { Request } from "talk-server/types/express";
 
@@ -18,8 +19,7 @@ export default (options: MiddlewareOptions) => async (
     // Attach the tenant to the request.
     const tenant = await cache.retrieveByDomain(req.hostname);
     if (!tenant) {
-      // TODO: send a http.StatusNotFound?
-      return next(new Error("tenant not found"));
+      return next(new TenantNotFoundErr());
     }
 
     // Attach the tenant cache to the request.
